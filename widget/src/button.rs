@@ -365,7 +365,7 @@ where
         tree: &Tree,
         renderer: &mut Renderer,
         theme: &Theme,
-        _style: &renderer::Style,
+        renderer_style: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
@@ -402,7 +402,9 @@ where
             renderer,
             theme,
             &renderer::Style {
-                text_color: style.text_color,
+                text_color: style
+                    .text_color
+                    .unwrap_or(renderer_style.text_color),
             },
             content_layout,
             cursor,
@@ -485,7 +487,7 @@ pub struct Style {
     /// The [`Background`] of the button.
     pub background: Option<Background>,
     /// The text [`Color`] of the button.
-    pub text_color: Color,
+    pub text_color: Option<Color>,
     /// The [`Border`] of the button.
     pub border: Border,
     /// The [`Shadow`] of the button.
@@ -506,7 +508,7 @@ impl Default for Style {
     fn default() -> Self {
         Self {
             background: None,
-            text_color: Color::BLACK,
+            text_color: None,
             border: Border::default(),
             shadow: Shadow::default(),
         }
@@ -653,14 +655,14 @@ pub fn text(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
 
     let base = Style {
-        text_color: palette.background.base.text,
+        text_color: Some(palette.background.base.text),
         ..Style::default()
     };
 
     match status {
         Status::Active | Status::Pressed => base,
         Status::Hovered => Style {
-            text_color: palette.background.base.text.scale_alpha(0.8),
+            text_color: Some(palette.background.base.text.scale_alpha(0.8)),
             ..base
         },
         Status::Disabled => disabled(base),
@@ -670,7 +672,7 @@ pub fn text(theme: &Theme, status: Status) -> Style {
 fn styled(pair: palette::Pair) -> Style {
     Style {
         background: Some(Background::Color(pair.color)),
-        text_color: pair.text,
+        text_color: Some(pair.text),
         border: border::rounded(2),
         ..Style::default()
     }
@@ -681,7 +683,8 @@ fn disabled(style: Style) -> Style {
         background: style
             .background
             .map(|background| background.scale_alpha(0.5)),
-        text_color: style.text_color.scale_alpha(0.5),
+        // Won't work if color is inherited though
+        text_color: style.text_color.map(|color| color.scale_alpha(0.5)),
         ..style
     }
 }
